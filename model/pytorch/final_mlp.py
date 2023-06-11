@@ -4,13 +4,16 @@ from torch.nn import functional as F
 
 
 class MLP(nn.Module):
-    def __init__(self, dim_in, num_hidden, dim_hidden, dim_out=None, dropout=0.0):
+    def __init__(self, dim_in, num_hidden, dim_hidden, dim_out=None, dropout=0.0, batch_norm=True):
         super().__init__()
 
         self.layers = nn.Sequential()
         for _ in range(num_hidden):
             self.layers.append(nn.Linear(dim_in, dim_hidden))
-            self.layers.append(nn.BatchNorm1d(dim_hidden))
+
+            if batch_norm:
+                self.layers.append(nn.BatchNorm1d(dim_hidden))
+
             self.layers.append(nn.ReLU())
             self.layers.append(nn.Dropout(dropout))
             dim_in = dim_hidden
@@ -27,20 +30,20 @@ class FeatureSelection(nn.Module):
         super().__init__()
 
         self.gate_1 = MLP(
-            dim_in=dim_feature,
+            dim_in=dim_gate,
             num_hidden=num_hidden,
             dim_hidden=dim_hidden,
             dim_out=dim_feature,
-            dropout=dropout,
+            batch_norm=False,
         )
         self.gate_1_bias = nn.Parameter(torch.ones(1, dim_gate))
 
         self.gate_2 = MLP(
-            dim_in=dim_feature,
+            dim_in=dim_gate,
             num_hidden=num_hidden,
             dim_hidden=dim_hidden,
             dim_out=dim_feature,
-            dropout=dropout,
+            batch_norm=False,
         )
         self.gate_2_bias = nn.Parameter(torch.ones(1, dim_gate))
 
@@ -138,8 +141,8 @@ class FinalMLP(nn.Module):
             num_heads=num_heads,
         )
 
-    def call(self, inputs, training=False):
-        embeddings = self.embedding(inputs, training=training)  # (bs, num_emb, dim_emb)
+    def forward(self, inputs):
+        embeddings = self.embedding(inputs)  # (bs, num_emb, dim_emb)
         embeddings = torch.reshape(embeddings, (-1, self.dim_input * self.dim_embedding))  # (bs, num_emb * dim_emb)
 
         # weight features of the two streams using a gating mechanism
