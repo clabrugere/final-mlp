@@ -49,12 +49,12 @@ class FeatureSelection(tf.keras.Model):
         )
         self.gate_2_bias = self.add_weight(shape=(1, dim_gate), initializer="ones", trainable=True)
 
-    def call(self, embeddings):
+    def call(self, embeddings, training=False):
         # embeddings is of shape (batch_size, dim_feature)
-        gate_score_1 = self.gate_1(self.gate_1_bias)  # (bs, dim_feature)
+        gate_score_1 = self.gate_1(self.gate_1_bias, training=training)  # (bs, dim_feature)
         out_1 = 2.0 * tf.nn.sigmoid(gate_score_1) * embeddings  # (bs, dim_feature)
 
-        gate_score_2 = self.gate_2(self.gate_2_bias)  # (bs, dim_feature)
+        gate_score_2 = self.gate_2(self.gate_2_bias, training=training)  # (bs, dim_feature)
         out_2 = 2.0 * tf.nn.sigmoid(gate_score_2) * embeddings  # (bs, dim_feature)
 
         return out_1, out_2  # (bs, dim_feature), (bs, dim_feature)
@@ -150,11 +150,14 @@ class FinalMLP(tf.keras.Model):
         embeddings = tf.reshape(embeddings, (-1, self.dim_input * self.dim_embedding))
 
         # weight features of the two streams using a gating mechanism
-        emb_1, emb_2 = self.feature_selection(embeddings)  # (bs, num_emb * dim_emb), (bs, num_emb * dim_emb)
+        emb_1, emb_2 = self.feature_selection(
+            embeddings, training=training
+        )  # (bs, num_emb * dim_emb), (bs, num_emb * dim_emb)
 
         # get interactions from the two branches
         # (bs, dim_hidden_1), (bs, dim_hidden_1)
-        latent_1, latent_2 = self.interaction_1(emb_1), self.interaction_2(emb_2)
+        latent_1 = self.interaction_1(emb_1, training=training)
+        latent_2 = self.interaction_2(emb_2, training=training)
 
         # merge the representations using an aggregation scheme
         logits = self.aggregation(latent_1, latent_2)  # (bs, 1)
