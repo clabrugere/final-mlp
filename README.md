@@ -27,7 +27,7 @@ val_data = ...
 )
 
 # train the model
-optimizer = tf.keras.optimizers.legacy.Adam(learning_rate=0.01)
+optimizer = tf.keras.optimizers.Adam(learning_rate=0.01)
 model.compile(optimizer=optimizer, loss="binary_crossentropy")
 model.fit(
     train_data,
@@ -40,7 +40,7 @@ y_pred = model.predict(X_test)
 
  ```
 
- ## Parameters:
+ ## Parameters
 - `dim_input` (int): number of features
 - `num_embedding` (int): number of unique modalities to embed
 - `dim_embedding` (int): dimension of the embedding vector
