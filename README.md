@@ -4,6 +4,8 @@
 
 In the implemention of this repository, we use only one embedding layer projecting the whole input vector to the embedding space. Nevertheless it can easily adapted to use multiple distinct embedding projections per modality (for instance one for user features, one for item features) and dedicated MLP streams learning modality-specific representations.
 
+![Architecture](resources/architecture.png)
+
 ## Getting Started
 
 This repository is rather simple and only provides implementation in both Pytorch and Tensorflow but no data loading, training and inference utilities. Clone the repo and play:
