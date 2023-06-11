@@ -33,6 +33,7 @@ class FeatureSelection(tf.keras.Model):
             num_hidden=num_hidden,
             dim_hidden=dim_hidden,
             dim_out=dim_feature,
+            dropout=dropout,
             batch_norm=False,
             name="feature_selection_gate_1",
         )
@@ -42,6 +43,7 @@ class FeatureSelection(tf.keras.Model):
             num_hidden=num_hidden,
             dim_hidden=dim_hidden,
             dim_out=dim_feature,
+            dropout=dropout,
             batch_norm=False,
             name="feature_selection_gate_2",
         )

@@ -34,6 +34,7 @@ class FeatureSelection(nn.Module):
             num_hidden=num_hidden,
             dim_hidden=dim_hidden,
             dim_out=dim_feature,
+            dropout=dropout,
             batch_norm=False,
         )
         self.gate_1_bias = nn.Parameter(torch.ones(1, dim_gate))
@@ -43,6 +44,7 @@ class FeatureSelection(nn.Module):
             num_hidden=num_hidden,
             dim_hidden=dim_hidden,
             dim_out=dim_feature,
+            dropout=dropout,
             batch_norm=False,
         )
         self.gate_2_bias = nn.Parameter(torch.ones(1, dim_gate))
