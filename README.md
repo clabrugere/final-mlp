@@ -8,8 +8,9 @@ In the implemention of this repository, we use only one embedding layer projecti
 
 This repository is rather simple and only provides implementation in both Pytorch and Tensorflow but no data loading, training and inference utilities. Clone the repo and play:
 
+```
 git clone https://github.com/clabrugere/final-mlp.git
-
+```
 
 ## Usage
 
