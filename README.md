@@ -14,7 +14,7 @@ git clone https://github.com/clabrugere/final-mlp.git
 ## Usage
 
 Import the module supporting the framework of your choice and train. For example with Tensorflow:
- ```
+ ``` python
 # load your tensorflow dataset
 train_data = ...
 val_data = ...
