@@ -6,6 +6,13 @@ In the implemention of this repository, we use only one embedding layer projecti
 
 ![Architecture](resources/architecture.png)
 
+## Dependencies
+
+Thie repository has the following dependencies:
+- python 3.9+
+- pytorch 2.0+ (only for pytorch implementation)
+- tensorflow 2.12+ (only for tensorflow implementation)
+
 ## Getting Started
 
 This repository is rather simple and only provides implementation in both Pytorch and Tensorflow but no data loading, training and inference utilities. Clone the repo and play:
