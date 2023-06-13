@@ -70,14 +70,14 @@ class Aggregation(nn.Module):
 
         self.w_1 = nn.Linear(dim_in_1, 1)
         self.w_2 = nn.Linear(dim_in_2, 1)
-        
+
         self.w_1 = nn.Parameter(torch.empty(self.dim_head_1, num_heads, 1))
         self.w_2 = nn.Parameter(torch.empty(self.dim_head_2, num_heads, 1))
         self.w_12 = nn.Parameter(torch.empty(num_heads, self.dim_head_1, self.dim_head_2, 1))
         self.bias = nn.Parameter(torch.ones(1, num_heads, 1))
-        
+
         self._reset_weights()
-        
+
     def _reset_weights(self):
         nn.init.xavier_uniform_(self.w_1)
         nn.init.xavier_uniform_(self.w_2)
