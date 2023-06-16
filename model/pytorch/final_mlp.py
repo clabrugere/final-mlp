@@ -8,7 +8,7 @@ class MLP(nn.Module):
         super().__init__()
 
         self.layers = nn.Sequential()
-        for _ in range(num_hidden):
+        for _ in range(num_hidden - 1):
             self.layers.append(nn.Linear(dim_in, dim_hidden))
 
             if batch_norm:
@@ -20,6 +20,8 @@ class MLP(nn.Module):
 
         if dim_out:
             self.layers.append(nn.Linear(dim_hidden, dim_out))
+        else:
+            self.layers.append(nn.Linear(dim_in, dim_out))
 
     def forward(self, inputs):
         return self.layers(inputs)
