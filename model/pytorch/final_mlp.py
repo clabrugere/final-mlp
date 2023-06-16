@@ -21,7 +21,7 @@ class MLP(nn.Module):
         if dim_out:
             self.layers.append(nn.Linear(dim_hidden, dim_out))
         else:
-            self.layers.append(nn.Linear(dim_in, dim_out))
+            self.layers.append(nn.Linear(dim_hidden, dim_out))
 
     def forward(self, inputs):
         return self.layers(inputs)
