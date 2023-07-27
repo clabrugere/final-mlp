@@ -19,9 +19,9 @@ class MLP(nn.Module):
             dim_in = dim_hidden
 
         if dim_out:
-            self.layers.append(nn.Linear(dim_hidden, dim_out))
+            self.layers.append(nn.Linear(dim_in, dim_out))
         else:
-            self.layers.append(nn.Linear(dim_hidden, dim_out))
+            self.layers.append(nn.Linear(dim_in, dim_hidden))
 
     def forward(self, inputs):
         return self.layers(inputs)
@@ -52,8 +52,12 @@ class FeatureSelection(nn.Module):
         self.gate_2_bias = nn.Parameter(torch.ones(1, dim_gate))
 
     def forward(self, embeddings):
+        print(embeddings.size())
+        print(self.gate_1_bias.size())
+
         # embeddings is of shape (bs, dim_feature)
         gate_score_1 = self.gate_1(self.gate_1_bias)  # (1, dim_feature)
+        print(gate_score_1.size())
         out_1 = 2.0 * F.sigmoid(gate_score_1) * embeddings  # (bs, dim_feature)
 
         gate_score_2 = self.gate_2(self.gate_2_bias)  # (1, dim_feature)

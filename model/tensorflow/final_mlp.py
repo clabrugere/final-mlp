@@ -21,13 +21,25 @@ class MLP(tf.keras.Model):
         else:
             self.blocks.add(tf.keras.layers.Dense(dim_hidden))
 
-    def call(self, inputs, training=False):
+    def call(self, inputs, training=None):
         return self.blocks(inputs, training=training)
 
 
 class FeatureSelection(tf.keras.Model):
-    def __init__(self, dim_feature, dim_gate, num_hidden=1, dim_hidden=64, dropout=0.0):
+    def __init__(
+        self,
+        dim_feature,
+        dim_gate=None,
+        num_hidden=1,
+        dim_hidden=64,
+        conditional_indices_1=None,
+        conditional_indices_2=None,
+        dropout=0.0,
+    ):
         super().__init__()
+
+        if not dim_gate:
+            dim_gate = dim_feature
 
         self.gate_1 = MLP(
             num_hidden=num_hidden,
@@ -37,7 +49,11 @@ class FeatureSelection(tf.keras.Model):
             batch_norm=False,
             name="feature_selection_gate_1",
         )
-        self.gate_1_bias = self.add_weight(shape=(1, dim_gate), initializer="ones", trainable=True)
+        self.conditional_indices_1 = conditional_indices_1
+        if conditional_indices_1 is None:
+            self.gate_1_bias = self.add_weight(
+                shape=(1, dim_gate), initializer="ones", trainable=True, name="gate_1_bias"
+            )
 
         self.gate_2 = MLP(
             num_hidden=num_hidden,
@@ -47,14 +63,28 @@ class FeatureSelection(tf.keras.Model):
             batch_norm=False,
             name="feature_selection_gate_2",
         )
-        self.gate_2_bias = self.add_weight(shape=(1, dim_gate), initializer="ones", trainable=True)
+        self.conditional_indices_2 = conditional_indices_2
+        if conditional_indices_2 is None:
+            self.gate_2_bias = self.add_weight(
+                shape=(1, dim_gate), initializer="ones", trainable=True, name="gate_1_bias"
+            )
 
-    def call(self, embeddings, training=False):
+    def call(self, embeddings, training=None):
         # embeddings is of shape (batch_size, dim_feature)
-        gate_score_1 = self.gate_1(self.gate_1_bias, training=training)  # (1, dim_feature)
+        if self.conditional_indices_1:
+            x1 = tf.gather(embeddings, self.conditional_indices_1, axis=-1)
+        else:
+            x1 = self.gate_1_bias  # (1, dim_feature)
+
+        if self.conditional_indices_2:
+            x2 = tf.gather(embeddings, self.conditional_indices_2, axis=-1)
+        else:
+            x2 = self.gate_2_bias  # (1, dim_feature)
+
+        gate_score_1 = self.gate_1(x1, training=training)  # (1, dim_feature)
         out_1 = 2.0 * tf.nn.sigmoid(gate_score_1) * embeddings  # (bs, dim_feature)
 
-        gate_score_2 = self.gate_2(self.gate_2_bias, training=training)  # (1, dim_feature)
+        gate_score_2 = self.gate_2(x2, training=training)  # (1, dim_feature)
         out_2 = 2.0 * tf.nn.sigmoid(gate_score_2) * embeddings  # (bs, dim_feature)
 
         return out_1, out_2  # (bs, dim_feature), (bs, dim_feature)
@@ -99,8 +129,10 @@ class FinalMLP(tf.keras.Model):
         dim_hidden_fs=64,
         num_hidden_1=2,
         dim_hidden_1=64,
+        conditional_indices_1=None,
         num_hidden_2=2,
         dim_hidden_2=64,
+        conditional_indices_2=None,
         num_heads=1,
         dropout=0.0,
         name="FinalMLP",
@@ -123,6 +155,8 @@ class FinalMLP(tf.keras.Model):
             dim_feature=dim_input * dim_embedding,
             dim_gate=dim_input,
             dim_hidden=dim_hidden_fs,
+            conditional_indices_1=conditional_indices_1,
+            conditional_indices_2=conditional_indices_2,
             dropout=dropout,
         )
 
@@ -144,7 +178,7 @@ class FinalMLP(tf.keras.Model):
         # final aggregation layer
         self.aggregation = Aggregation(dim_latent_1=dim_hidden_1, dim_latent_2=dim_hidden_2, num_heads=num_heads)
 
-    def call(self, inputs, training=False):
+    def call(self, inputs, training=None):
         embeddings = self.embedding(inputs, training=training)  # (bs, num_emb, dim_emb)
 
         # (bs, num_emb * dim_emb)
