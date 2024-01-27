@@ -3,67 +3,57 @@ from torch import nn
 from torch.nn import functional as F
 
 
-class MLP(nn.Module):
-    def __init__(self, dim_in, num_hidden, dim_hidden, dim_out=None, dropout=0.0, batch_norm=True):
-        super().__init__()
-
-        self.layers = nn.Sequential()
+class MLP(nn.Sequential):
+    def __init__(self, dim_in, num_hidden, dim_hidden, dim_out=None, batch_norm=True, dropout=0.0):
+        layers = []
         for _ in range(num_hidden - 1):
-            self.layers.append(nn.Linear(dim_in, dim_hidden))
+            layers.append(nn.Linear(dim_in, dim_hidden))
 
             if batch_norm:
-                self.layers.append(nn.BatchNorm1d(dim_hidden))
+                layers.append(nn.BatchNorm1d(dim_hidden))
 
-            self.layers.append(nn.ReLU())
-            self.layers.append(nn.Dropout(dropout))
+            layers.append(nn.ReLU())
+            layers.append(nn.Dropout(dropout))
             dim_in = dim_hidden
 
         if dim_out:
-            self.layers.append(nn.Linear(dim_in, dim_out))
+            layers.append(nn.Linear(dim_in, dim_out))
         else:
-            self.layers.append(nn.Linear(dim_in, dim_hidden))
+            layers.append(nn.Linear(dim_in, dim_hidden))
 
-    def forward(self, inputs):
-        return self.layers(inputs)
+        super().__init__(*layers)
 
 
 class FeatureSelection(nn.Module):
-    def __init__(self, dim_feature, dim_gate, num_hidden=1, dim_hidden=64, dropout=0.0):
+    def __init__(self, dim_input, num_hidden=1, dim_hidden=64, dropout=0.0):
         super().__init__()
 
         self.gate_1 = MLP(
-            dim_in=dim_gate,
+            dim_in=dim_input,
             num_hidden=num_hidden,
             dim_hidden=dim_hidden,
-            dim_out=dim_feature,
+            dim_out=dim_input,
             dropout=dropout,
             batch_norm=False,
         )
-        self.gate_1_bias = nn.Parameter(torch.ones(1, dim_gate))
 
         self.gate_2 = MLP(
-            dim_in=dim_gate,
+            dim_in=dim_input,
             num_hidden=num_hidden,
             dim_hidden=dim_hidden,
-            dim_out=dim_feature,
+            dim_out=dim_input,
             dropout=dropout,
             batch_norm=False,
         )
-        self.gate_2_bias = nn.Parameter(torch.ones(1, dim_gate))
 
-    def forward(self, embeddings):
-        print(embeddings.size())
-        print(self.gate_1_bias.size())
+    def forward(self, inputs):
+        gate_score_1 = self.gate_1(inputs)  # (1, dim_input)
+        out_1 = 2.0 * F.sigmoid(gate_score_1) * inputs  # (bs, dim_input)
 
-        # embeddings is of shape (bs, dim_feature)
-        gate_score_1 = self.gate_1(self.gate_1_bias)  # (1, dim_feature)
-        print(gate_score_1.size())
-        out_1 = 2.0 * F.sigmoid(gate_score_1) * embeddings  # (bs, dim_feature)
+        gate_score_2 = self.gate_2(inputs)  # (1, dim_input)
+        out_2 = 2.0 * F.sigmoid(gate_score_2) * inputs  # (bs, dim_input)
 
-        gate_score_2 = self.gate_2(self.gate_2_bias)  # (1, dim_feature)
-        out_2 = 2.0 * F.sigmoid(gate_score_2) * embeddings  # (bs, dim_feature)
-
-        return out_1, out_2  # (bs, dim_feature), (bs, dim_feature)
+        return out_1, out_2  # (bs, dim_input), (bs, dim_input)
 
 
 class Aggregation(nn.Module):
@@ -99,7 +89,7 @@ class Aggregation(nn.Module):
         first_order += torch.einsum("bhi,iho->bho", latent_2, self.w_2)  # (bs, num_heads, 1)
         second_order = torch.einsum("bhi,hijo,bhj->bho", latent_1, self.w_12, latent_2)  # (bs, num_heads, 1)
 
-        out = torch.sum(first_order + second_order + self.bias, 1)  # (bs, 1)
+        out = torch.sum(first_order + second_order + self.bias, dim=1)  # (bs, 1)
 
         return out
 
@@ -128,8 +118,7 @@ class FinalMLP(nn.Module):
 
         # feature selection layer that projects a learnable vector to the flatened embedded feature space
         self.feature_selection = FeatureSelection(
-            dim_feature=dim_input * dim_embedding,
-            dim_gate=dim_input,
+            dim_input=dim_input * dim_embedding,
             dim_hidden=dim_hidden_fs,
             dropout=dropout,
         )
